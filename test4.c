@@ -7,10 +7,24 @@
 #include <string.h>
 #include <time.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 
-#define READ_END 0
-#define WRITE_END 1
+int numberOfProc;
+
+
+static void handler_INT(){
+    printf("%s", "\nPrograma foi fechada por Ctrl C\n");
+    for(int i = 1; i <= numberOfProc; i++){
+        char NameOfPipe[10];
+        sprintf(NameOfPipe, "pipe%dto%d", i, (i % numberOfProc)+ 1 );
+        remove(NameOfPipe);
+    }
+    exit(EXIT_FAILURE);
+};
+
+
+
 
 /*
 char *NameOfPipe(int i, int j){
@@ -34,12 +48,9 @@ int main(int argc, char *argv[]) {
     float p = atof(argv[2]);
     int t = atoi(argv[3]);
 
-    
-    
-    int token = 0;
-    //int tokenToSend = 0;
-    
+    numberOfProc = n;
 
+    int token = 0;
     
 
     pid_t pid;
@@ -48,7 +59,6 @@ int main(int argc, char *argv[]) {
 
     
 
-    // criamos n pipes e n > 1
     int j;
     for (j = 1; j <= n; j++) {
         char NameOfPipe[10];
@@ -92,23 +102,16 @@ int main(int argc, char *argv[]) {
                     printf("[p%d] unlock token \n", i);
                     sleep(t);
                 }
-
-
-
-               
-
-
                 
-
                 char NameOfPipeWrite[10];
                 sprintf(NameOfPipeWrite, "pipe%dto%d", (i % n + 1) , ((i % n + 1) % n  + 1) );
-                //printf("%s", NameOfPipeWrite);
+                
+
                 if((f_write = open(NameOfPipeWrite, O_WRONLY  )) < 0){
                     printf("Error reading file 96\n\r");
-                    //printf("%s", NameOfPipeWrite);
                     return EXIT_FAILURE;
                 }
-                //printf("helloe");
+                
                 write(f_write, &token, sizeof(token));
             }
         }
@@ -119,12 +122,17 @@ int main(int argc, char *argv[]) {
                 int f_write = open("pipe1to2", O_WRONLY );
                 write(f_write, &token, sizeof(token));
             }
-            
         }
     }
 
-    // kill all processes  mkfifo. By Ctrl C
+
+    if (signal(SIGINT, handler_INT) == SIG_ERR){
+        fprintf(stderr, "Can’t catch SIGINT: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    for (;;)
+        pause();
     
     return 0;
 }
-
